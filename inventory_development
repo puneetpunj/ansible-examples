@@ -1,0 +1,16 @@
+all:
+  hosts:
+    server1:
+      ansible_ssh_host: 172.31.0.119
+  children:
+    # ubuntu group
+    ubuntu:
+      hosts:
+        server1
+    # melbourne group
+    melbourne:
+      hosts:
+        server1
+    centos:
+      hosts:
+        172.31.9.169

@@ -1,0 +1,9 @@
+---
+
+- name: Install Powershell
+  gather_facts: True
+  become: yes
+  hosts: "{{ target_host }}"
+  roles:
+    - nml_linux_install_powershell
+      

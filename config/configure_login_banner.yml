@@ -1,0 +1,8 @@
+---
+
+- name: Configure login banners
+  gather_facts: True
+  become: yes
+  hosts: "{{ target_host }}"
+  roles:
+    - nml_linux_config_banner

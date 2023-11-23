@@ -1,0 +1,8 @@
+---
+
+- name: Ping servers
+  gather_facts: False
+  become: yes
+  hosts: "{{ target_host }}"
+  roles:
+    - ping

@@ -1,0 +1,42 @@
+---
+
+- name: Copy login.warn file to /etc/login.warn 
+  copy:
+    src: files/login.warn
+    dest: /etc/login.warn
+    backup: yes
+    mode: 0644
+
+- name: Copy motd file to /etc/motd
+  copy:
+    src: files/motd
+    dest: /etc/motd
+    backup: yes
+    mode: 0644
+
+- name: Update sshd_config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?Banner'
+    line: 'Banner /etc/login.warn'
+    state: present
+  notify: Restart SSH service
+
+- name: Check Login Banner
+  shell: cat /etc/login.warn
+  register: banner_output
+  ignore_errors: true
+
+- name: Check Message of the Day
+  shell: cat /etc/motd
+  register: motd_output
+  ignore_errors: true
+
+- name: Display Results
+  debug:
+    msg: |
+      Login Banner:
+      {{ banner_output.stdout | default('Banner not configured.') }}
+
+      Message of the Day:
+      {{ motd_output.stdout | default('Message of the Day not configured.') }}

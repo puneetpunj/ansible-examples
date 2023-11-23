@@ -1,0 +1,103 @@
+---
+
+- block:
+    - name: Install dependencies on Ubuntu
+      apt:
+        name: ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common']
+        state: present    
+
+    - name: Add Microsoft repository key on Ubuntu
+      apt_key:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        state: present    
+
+    - name: Add Microsoft repository on Ubuntu
+      apt_repository:
+        repo: "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-{{ ansible_distribution_release }}-prod {{ ansible_distribution_release }} main"
+        state: present
+      when: ansible_distribution_version != '16.04'
+    
+    - name: Add Microsoft repository on Ubuntu 16.04
+      apt_repository:
+        repo: 'deb [arch=amd64] https://packages.microsoft.com/ubuntu/16.04/prod xenial main'
+        state: present
+        filename: 'microsoft-ubuntu-16.04-prod'
+        update_cache: yes
+      when: ansible_distribution_version == '16.04'
+
+    - name: Install PowerShell
+      apt:
+        name: powershell
+        state: present
+
+  when: ansible_os_family == 'Debian'
+- block:
+    - name: Install dependencies on CentOS
+      yum:
+        name: ['yum-utils']
+        state: present
+
+    - name: Import Microsoft repository GPG key on CentOS
+      shell: rpm --import https://packages.microsoft.com/keys/microsoft.asc
+      changed_when: false
+
+    - name: Add Microsoft repository on CentOS
+      yum_repository:
+        name: microsoft-{{ ansible_distribution_major_version }}-prod
+        description: Microsoft Product Repository        
+        #  powershell package is available in rhel7.3
+        baseurl: https://packages.microsoft.com/yumrepos/microsoft-rhel7.3-prod
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+
+    - name: Install PowerShell on Centos
+      yum:
+        name: powershell
+        state: present
+        enablerepo: microsoft-{{ ansible_distribution_major_version }}-prod
+  
+  when: ansible_os_family == 'RedHat'
+
+- name: Install PowerShell
+  package:
+    name: powershell
+    state: present
+
+- name: Check PowerShell version
+  command: pwsh --version
+  register: pwsh_version
+
+- name: Display PowerShell version
+  debug:
+    msg: "PowerShell version: {{ pwsh_version.stdout }}"
+
+- name: Configure Powershell auto-update
+  cron:
+    name: Update PowerShell
+    # update every midnight
+    minute: 0
+    hour: 0
+    job: "yum update -y powershell"
+  when: ansible_os_family == 'RedHat'
+
+- name: Configure Powershell auto-update
+  cron:
+    name: Update PowerShell
+    # update every midnight
+    minute: 0
+    hour: 0
+    job: "apt upgrade -y powershell"
+  when: ansible_os_family == 'Debian'
+
+- name: Configure PowerShell remoting
+  blockinfile:
+    path: /etc/ssh/sshd_config
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - PowerShell Remoting"
+    block: |
+      # Enable PowerShell Remoting
+      Subsystem powershell /usr/bin/pwsh -sshs -NoLogo -NoProfile
+      Match User your_admin_user
+        ForceCommand /usr/bin/pwsh
+
+  notify: Restart SSH service
