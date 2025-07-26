@@ -3,6 +3,6 @@
 - name: Ping servers
   gather_facts: False
   become: yes
-  hosts: "{{ target_host }}"
+  hosts: all
   roles:
     - ping
